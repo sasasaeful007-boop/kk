@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kirim Lokasi</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font-family: Arial, sans-serif; background: #f4f6f8; color: #222;
+    }
+    .card {
+      width: min(92%, 420px); background: white; padding: 28px;
+      border-radius: 18px; box-shadow: 0 8px 30px rgba(0,0,0,.08);
+      text-align: center;
+    }
+    h1 { margin: 0 0 10px; }
+    p { color: #666; line-height: 1.5; }
+    button, a.button {
+      display: block; width: 100%; border: 0; border-radius: 12px;
+      padding: 14px; margin-top: 12px; font-size: 16px;
+      cursor: pointer; text-decoration: none;
+    }
+    #send { background: #111; color: white; }
+    #maps { background: #e9ecef; color: #222; display: none; }
+    #status { margin-top: 18px; font-size: 14px; min-height: 20px; }
+    .small { font-size: 12px; color: #888; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>📍 Kirim Lokasi</h1>
+    <p>Tekan tombol di bawah untuk membagikan lokasi perangkat Anda.</p>
+
+    <button id="send">Kirim Lokasi Saya</button>
+    <a id="maps" class="button" target="_blank" rel="noopener">Lihat di Google Maps</a>
+
+    <div id="status"></div>
+    <div class="small">Lokasi hanya dibagikan setelah Anda memberikan izin kepada browser.</div>
+  </main>
+
+<script>
+const sendBtn = document.getElementById("send");
+const mapsBtn = document.getElementById("maps");
+const status = document.getElementById("status");
+
+sendBtn.addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    status.textContent = "Browser ini tidak mendukung lokasi.";
+    return;
+  }
+
+  status.textContent = "Meminta izin lokasi...";
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+      mapsBtn.href = mapsUrl;
+      mapsBtn.style.display = "block";
+
+      const message = `Lokasi saya: ${mapsUrl}`;
+
+      // Membuka menu share perangkat jika tersedia.
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "Lokasi saya",
+            text: message,
+            url: mapsUrl
+          });
+          status.textContent = "Lokasi siap dibagikan.";
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            status.textContent = "Lokasi berhasil didapatkan.";
+          }
+        }
+      } else {
+        // Fallback: salin link lokasi.
+        try {
+          await navigator.clipboard.writeText(message);
+          status.textContent = "Link lokasi sudah disalin. Silakan kirim ke orang yang dituju.";
+        } catch {
+          status.textContent = `Lokasi: ${mapsUrl}`;
+        }
+      }
+    },
+    (error) => {
+      const messages = {
+        1: "Izin lokasi ditolak. Silakan izinkan lokasi di pengaturan browser.",
+        2: "Lokasi tidak dapat ditemukan. Coba lagi.",
+        3: "Permintaan lokasi terlalu lama. Coba lagi."
+      };
+      status.textContent = messages[error.code] || "Gagal mendapatkan lokasi.";
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+});
+</script>
+</body>
+</html>
